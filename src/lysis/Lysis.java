@@ -1,7 +1,10 @@
 package lysis;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
 import java.util.LinkedList;
 
 import lysis.builder.MethodParser;
@@ -143,7 +146,7 @@ public class Lysis {
 	public static void main(String[] args) {
 		if (args.length < 1)
         {
-            System.err.println("usage: <file.smx> or <file.amxx>");
+            System.err.println("usage: <file.smx> or <file.amxx> [output]");
             return;
         }
 		
@@ -156,6 +159,20 @@ public class Lysis {
 		}
 		
 		String path = args[0];
+		PrintStream to = System.out;
+		if (args.length == 2) {
+		    try {
+                File hFile = new File(args[1]);
+                hFile.createNewFile();
+                hFile.setWritable(true);
+                to = new PrintStream(hFile);
+            } catch (IOException e) {
+		        System.err.println("Exception reported when opening the file (IOException): " + e.getMessage());
+		        return;
+            }
+        }
+
+
         PawnFile file = null;
 		try {
 			file = PawnFile.FromFile(path);
@@ -182,13 +199,13 @@ public class Lysis {
             catch (Throwable e)
             {
                 e.printStackTrace();
-                System.out.println("");
-                System.out.println("/* ERROR PREPROCESSING! " + e.getMessage() + " */");
-                System.out.println(" function \"" + fun.name() + "\" (number " + i + ")");
+                to.println("");
+                to.println("/* ERROR PREPROCESSING! " + e.getMessage() + " */");
+                to.println("// function \"" + fun.name() + "\" (number " + i + ")");
             }
         }
 		
-        SourceBuilder source = new SourceBuilder(file, System.out);
+        SourceBuilder source = new SourceBuilder(file, to);
         try {
 			source.writeGlobals();
 		} catch (Exception e1) {
@@ -203,18 +220,17 @@ public class Lysis {
             try
             {
                 DumpMethod((SourcePawnFile)file, source, fun.address());
-                System.out.println("");
+                to.println("");
             }
             catch (Throwable e)
             {
             	e.printStackTrace();
-            	System.out.println("");
-            	System.out.println("/* ERROR! " + e.getMessage() + " */");
-            	System.out.println(" function \"" + fun.name() + "\" (number " + i + ")");
-                source = new SourceBuilder((SourcePawnFile)file, System.out);
+                to.println("");
+                to.println("/* ERROR! " + e.getMessage() + " */");
+                to.println(" function \"" + fun.name() + "\" (number " + i + ")");
+                source = new SourceBuilder((SourcePawnFile)file, to);
             }
 //#endif
         }
 	}
-
 }
